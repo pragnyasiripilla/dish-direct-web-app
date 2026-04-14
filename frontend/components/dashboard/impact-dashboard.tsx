@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { ClientDateText } from "@/components/ui/client-date-text"
 import { Heart, Users, MapPin, TrendingUp, Clock, Globe } from "lucide-react"
 
 interface ImpactStats {
@@ -151,7 +152,9 @@ export function ImpactDashboard() {
                 <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                 <div className="flex-1">
                   <p className="text-white text-sm">{activity.message}</p>
-                  <p className="text-white/50 text-xs mt-1">{new Date(activity.timestamp).toLocaleTimeString()}</p>
+                  <p className="text-white/50 text-xs mt-1">
+                    <ClientDateText value={activity.timestamp} mode="time" />
+                  </p>
                 </div>
                 {activity.amount && (
                   <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">${activity.amount}</Badge>

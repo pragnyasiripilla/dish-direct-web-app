@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { ClientDateText } from "@/components/ui/client-date-text"
 import { Store, DollarSign, Users, TrendingUp, Clock, MapPin, Star, Heart } from "lucide-react"
 
 interface RestaurantStats {
@@ -202,7 +203,9 @@ export function RestaurantDashboard() {
                   <div>
                     <h4 className="text-white font-medium">{redemption.user}</h4>
                     <p className="text-sm text-white/70">{redemption.requestedMeal}</p>
-                    <p className="text-xs text-white/50 mt-1">{new Date(redemption.timestamp).toLocaleString()}</p>
+                    <p className="text-xs text-white/50 mt-1">
+                      <ClientDateText value={redemption.timestamp} mode="datetime" />
+                    </p>
                   </div>
                   <Badge className="bg-primary/20 text-primary border-primary/30">{redemption.tokens} tokens</Badge>
                 </div>
@@ -248,7 +251,9 @@ export function RestaurantDashboard() {
               <div key={donation.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
                 <div>
                   <h4 className="text-white font-medium">{donation.donor}</h4>
-                  <p className="text-sm text-white/70">{new Date(donation.date).toISOString().slice(0, 10)}</p>
+                  <p className="text-sm text-white/70">
+                    <ClientDateText value={donation.date} mode="date" />
+                  </p>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-white">${donation.amount}</div>

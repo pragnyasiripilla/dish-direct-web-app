@@ -1,15 +1,23 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { GlassmorphismNav } from "@/components/glassmorphism-nav"
 import { ImpactDashboard } from "@/components/dashboard/impact-dashboard"
 import { UserDashboard } from "@/components/dashboard/user-dashboard"
 import { RestaurantDashboard } from "@/components/dashboard/restaurant-dashboard"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BarChart3, User, Store } from "lucide-react"
+import { getSessionUser } from "@/lib/auth-session"
 
 export default function DashboardPage() {
-  const [userRole] = useState<"user" | "restaurant" | "admin">("user") // This would come from auth context
+  const [userRole, setUserRole] = useState<"user" | "restaurant" | "admin">("user")
+
+  useEffect(() => {
+    const sessionUser = getSessionUser()
+    if (sessionUser?.role === "restaurant" || sessionUser?.role === "admin" || sessionUser?.role === "user") {
+      setUserRole(sessionUser.role)
+    }
+  }, [])
 
   return (
     <main className="min-h-screen bg-background">

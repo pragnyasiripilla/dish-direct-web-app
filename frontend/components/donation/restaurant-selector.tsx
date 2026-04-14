@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { apiRequest } from "@/lib/api-client"
 import { MapPin, Star, Search, Heart } from "lucide-react"
 
 interface Restaurant {
@@ -25,6 +26,7 @@ export function RestaurantSelector({ onSelectRestaurant, selectedRestaurant }: R
   const [restaurants, setRestaurants] = useState<Restaurant[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchRestaurants()
@@ -32,43 +34,13 @@ export function RestaurantSelector({ onSelectRestaurant, selectedRestaurant }: R
 
   const fetchRestaurants = async () => {
     try {
-      const response = await fetch("/api/restaurants")
-      const data = await response.json()
-
-      if (data.success) {
-        setRestaurants(data.restaurants)
-      }
+      const data = await apiRequest<{ restaurants: Restaurant[] }>("/restaurants")
+      setRestaurants(data.restaurants)
+      setError(null)
     } catch (error) {
       console.error("Failed to fetch restaurants:", error)
-      setRestaurants([
-        {
-          id: "1",
-          name: "Mama's Kitchen",
-          address: "123 Main St, Downtown",
-          cuisine: "Italian",
-          rating: 4.8,
-          verified: true,
-          distance: 0.5,
-        },
-        {
-          id: "2",
-          name: "Spice Garden",
-          address: "456 Oak Ave, Midtown",
-          cuisine: "Indian",
-          rating: 4.6,
-          verified: true,
-          distance: 1.2,
-        },
-        {
-          id: "3",
-          name: "Green Bowl",
-          address: "789 Pine St, Uptown",
-          cuisine: "Healthy",
-          rating: 4.7,
-          verified: false,
-          distance: 2.1,
-        },
-      ])
+      setRestaurants([])
+      setError("Failed to load restaurants")
     } finally {
       setIsLoading(false)
     }
@@ -158,6 +130,7 @@ export function RestaurantSelector({ onSelectRestaurant, selectedRestaurant }: R
       {filteredRestaurants.length === 0 && (
         <div className="text-center text-white/70 py-8">No restaurants found matching your search.</div>
       )}
+      {error && <div className="text-center text-red-400 text-sm mt-3">{error}</div>}
     </Card>
   )
 }

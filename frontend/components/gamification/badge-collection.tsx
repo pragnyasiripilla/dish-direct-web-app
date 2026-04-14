@@ -5,6 +5,7 @@ import type React from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { ClientDateText } from "@/components/ui/client-date-text"
 import { Trophy, Heart, Star, Zap, Crown, Gift, Target, Users } from "lucide-react"
 
 interface BadgeData {
@@ -87,7 +88,9 @@ export function BadgeCollection({ badges }: BadgeCollectionProps) {
                   {badge.rarity}
                 </Badge>
                 {badge.earnedDate && (
-                  <p className="text-xs text-white/50 mt-2">Earned {new Date(badge.earnedDate).toISOString().slice(0, 10)}</p>
+                  <p className="text-xs text-white/50 mt-2">
+                    <ClientDateText value={badge.earnedDate} mode="date" prefix="Earned " />
+                  </p>
                 )}
               </Card>
             ))}

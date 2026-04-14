@@ -8,6 +8,10 @@ import type { Env } from "../config/env.js"
 
 // ✅ ADD THIS
 import authRoutes from "./auth/auth.routes.js"
+import donationsRoutes from "./donations/donations.routes.js"
+import rewardsRoutes from "./rewards/rewards.routes.js"
+import restaurantsRoutes from "./restaurants/restaurants.routes.js"
+import communityRoutes from "./community/community.routes.js"
 
 export function createApp(env: Env) {
   const app = express()
@@ -34,6 +38,10 @@ export function createApp(env: Env) {
 
   // ✅ ADD THIS
   app.use("/auth", authRoutes)
+  app.use("/donations", donationsRoutes)
+  app.use("/rewards", rewardsRoutes)
+  app.use("/restaurants", restaurantsRoutes)
+  app.use("/community", communityRoutes)
 
   app.get("/health", (_req, res) => {
     res.json({ ok: true })

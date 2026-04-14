@@ -6,7 +6,7 @@ class SocketService {
 
   connect() {
     if (typeof window !== "undefined" && !this.socket) {
-      this.socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001", {
+      this.socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000", {
         transports: ["websocket"],
       })
 

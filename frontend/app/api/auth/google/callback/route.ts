@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
 
+export const dynamic = "force-dynamic"
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -9,9 +11,11 @@ export async function GET(request: NextRequest) {
 
     console.log("[v0] Google OAuth callback - Code:", code, "Error:", error)
 
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin
+
     if (error || !code) {
       console.log("[v0] OAuth error or no code:", error)
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/sign-in?error=oauth_failed`)
+      return NextResponse.redirect(`${baseUrl}/auth/sign-in?error=oauth_failed`)
     }
 
     const tokenResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -24,13 +28,13 @@ export async function GET(request: NextRequest) {
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
         code,
         grant_type: "authorization_code",
-        redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/google/callback`,
+        redirect_uri: `${baseUrl}/api/auth/google/callback`,
       }),
     })
 
     if (!tokenResponse.ok) {
       console.log("[v0] Token exchange failed:", await tokenResponse.text())
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/sign-in?error=token_exchange_failed`)
+      return NextResponse.redirect(`${baseUrl}/auth/sign-in?error=token_exchange_failed`)
     }
 
     const tokens = await tokenResponse.json()
@@ -44,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     if (!userResponse.ok) {
       console.log("[v0] User info fetch failed")
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/sign-in?error=user_info_failed`)
+      return NextResponse.redirect(`${baseUrl}/auth/sign-in?error=user_info_failed`)
     }
 
     const googleUser = await userResponse.json()
@@ -61,7 +65,7 @@ export async function GET(request: NextRequest) {
 
     const token = jwt.sign(user, process.env.JWT_SECRET || "secret", { expiresIn: "7d" })
 
-    const response = NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`)
+    const response = NextResponse.redirect(`${baseUrl}/dashboard`)
     response.cookies.set("token", token, {
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60,
@@ -73,6 +77,7 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error) {
     console.error("[v0] Google OAuth callback error:", error)
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/sign-in?error=oauth_failed`)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin
+    return NextResponse.redirect(`${baseUrl}/auth/sign-in?error=oauth_failed`)
   }
 }

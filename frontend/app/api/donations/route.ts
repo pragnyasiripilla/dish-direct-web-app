@@ -2,16 +2,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import Stripe from "stripe"
 import Razorpay from "razorpay"
 
-// ✅ Use environment variables (safer)
-const stripe = new Stripe(process.env.STRIPE_SECRET || "", {
-  apiVersion: "2023-10-16" as any,
-})
-
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY || "",
-  key_secret: process.env.RAZORPAY_SECRET || "",
-})
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -35,6 +25,12 @@ export async function POST(request: NextRequest) {
     try {
       // 💳 CARD → STRIPE
       if (paymentMethod === "card") {
+        if (!process.env.STRIPE_SECRET) {
+          return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 })
+        }
+        const stripe = new Stripe(process.env.STRIPE_SECRET, {
+          apiVersion: "2023-10-16" as any,
+        })
         const paymentIntent = await stripe.paymentIntents.create({
           amount: amount * 100,
           currency: "usd",
@@ -50,6 +46,13 @@ export async function POST(request: NextRequest) {
 
       // 📱 UPI → RAZORPAY
       if (paymentMethod === "upi") {
+        if (!process.env.RAZORPAY_KEY || !process.env.RAZORPAY_SECRET) {
+          return NextResponse.json({ error: "Razorpay is not configured" }, { status: 500 })
+        }
+        const razorpay = new Razorpay({
+          key_id: process.env.RAZORPAY_KEY,
+          key_secret: process.env.RAZORPAY_SECRET,
+        })
         const order = await razorpay.orders.create({
           amount: amount * 100,
           currency: "INR",

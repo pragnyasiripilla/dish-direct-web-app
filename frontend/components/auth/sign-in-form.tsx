@@ -8,43 +8,90 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Eye, EyeOff, Mail, Phone, Chrome } from "lucide-react"
+import { Eye, EyeOff, Mail, Chrome } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { apiRequest } from "@/lib/api-client"
+import { saveSession } from "@/lib/auth-session"
 
 export function SignInForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: "",
-    phone: "",
     password: "",
     otp: "",
   })
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("[ui] Email sign-in submitted")
     setIsLoading(true)
-    // TODO: Implement email/password sign in
-    setTimeout(() => setIsLoading(false), 2000)
+    setError(null)
+    setSuccess(null)
+    try {
+      const data = await apiRequest<{ token: string; user: { id: string; email: string; name: string; role: string } }>(
+        "/auth/login-password",
+        {
+          method: "POST",
+          body: JSON.stringify({ email: formData.email, password: formData.password }),
+        },
+      )
+      saveSession(data.token, data.user)
+      window.location.href = "/dashboard"
+    } catch (error) {
+      console.error(error)
+      setError(error instanceof Error ? error.message : "Login failed")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleOTPSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log("[ui] OTP sign-in submitted", { otpSent })
     setIsLoading(true)
-    if (!otpSent) {
-      // Send OTP
-      setOtpSent(true)
-    } else {
-      // Verify OTP
-      // TODO: Implement OTP verification
+    setError(null)
+    setSuccess(null)
+    try {
+      if (!otpSent) {
+        await apiRequest("/auth/login-otp/request", {
+          method: "POST",
+          body: JSON.stringify({ email: formData.email }),
+        })
+        setOtpSent(true)
+        setSuccess("OTP sent successfully. Check your email.")
+      } else {
+        const data = await apiRequest<{ token: string; user: { id: string; email: string; name: string; role: string } }>(
+          "/auth/login-otp/verify",
+          {
+            method: "POST",
+            body: JSON.stringify({ email: formData.email, otp: formData.otp }),
+          },
+        )
+        saveSession(data.token, data.user)
+        window.location.href = "/dashboard"
+      }
+    } catch (error) {
+      console.error(error)
+      setError(error instanceof Error ? error.message : "OTP sign-in failed")
+    } finally {
+      setIsLoading(false)
     }
-    setTimeout(() => setIsLoading(false), 2000)
   }
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true)
-    // TODO: Implement Google OAuth
-    setTimeout(() => setIsLoading(false), 2000)
+    console.log("[ui] Google sign-in clicked")
+    setError(null)
+    try {
+      const data = await apiRequest<{ url: string }>("/auth/google/url")
+      window.location.href = data.url
+    } catch (error) {
+      console.error(error)
+      setError(error instanceof Error ? error.message : "Google sign-in failed")
+    }
   }
 
   return (
@@ -54,6 +101,16 @@ export function SignInForm() {
         <CardDescription className="text-white/70">Sign in to continue your impact journey</CardDescription>
       </CardHeader>
       <CardContent>
+        {success && (
+          <Alert className="mb-4 bg-green-500/10 text-green-400 border-green-500">
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+        {error && (
+          <Alert className="mb-4 bg-red-500/10 text-red-400 border-red-500">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <Tabs defaultValue="email" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-white/10 border border-white/20">
             <TabsTrigger
@@ -130,16 +187,16 @@ export function SignInForm() {
             <form onSubmit={handleOTPSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-white">
-                  Phone Number
+                  Email
                 </Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-white/50" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-white/50" />
                   <Input
                     id="phone"
-                    type="tel"
-                    placeholder="+1 (555) 123-4567"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    type="email"
+                    placeholder="Enter your email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
                     required
                   />
@@ -161,7 +218,7 @@ export function SignInForm() {
                     maxLength={6}
                     required
                   />
-                  <p className="text-sm text-white/70">Code sent to {formData.phone}</p>
+                  <p className="text-sm text-white/70">Code sent to {formData.email}</p>
                 </div>
               )}
 

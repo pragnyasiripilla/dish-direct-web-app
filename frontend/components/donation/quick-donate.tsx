@@ -16,7 +16,7 @@ interface Restaurant {
 }
 
 interface QuickDonateProps {
-  onDonate: (amount: number, restaurant: Restaurant) => void
+  onDonate: (donation: any, restaurant: Restaurant) => void
   selectedRestaurant: Restaurant | null
 }
 
@@ -32,13 +32,15 @@ export function QuickDonate({ onDonate, selectedRestaurant }: QuickDonateProps) 
   const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   const handleQuickDonate = () => {
+    console.log("[ui] Quick donate clicked", { selectedAmount, restaurantId: selectedRestaurant?.id })
     if (selectedAmount && selectedRestaurant) {
       setShowPaymentModal(true)
     }
   }
 
   const handlePaymentComplete = (donation: any) => {
-    onDonate(selectedAmount!, selectedRestaurant!)
+    console.log("[ui] Quick donate payment complete", donation)
+    onDonate(donation, selectedRestaurant!)
     setShowPaymentModal(false)
     setSelectedAmount(null)
   }

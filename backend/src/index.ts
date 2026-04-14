@@ -1,9 +1,20 @@
 import dotenv from "dotenv"
-dotenv.config()
+import path from "path"
+import { fileURLToPath } from "url"
+
+// ✅ Fix __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// ✅ Load .env correctly from backend folder
+dotenv.config({ path: path.join(__dirname, "../.env") })
 
 import { loadEnv } from "./config/env.js"
 import { connectMongo } from "./db/mongo.js"
 import { createApp } from "./http/app.js"
+
+// ✅ Debug (check if env is loading)
+console.log("SMTP_HOST:", process.env.SMTP_HOST)
 
 const env = loadEnv(process.env)
 
@@ -15,28 +26,20 @@ async function main() {
   }
 
   const app = createApp(env)
-  const startOnPort = (port: number) =>
-    new Promise<void>((resolve) => {
-      const server = app.listen(port, () => {
-        console.log(`[backend] listening on http://localhost:${port}`)
-        resolve()
-      })
-      server.on("error", (err: any) => {
-        if (err?.code === "EADDRINUSE") {
-          console.warn(`[backend] port ${port} in use, trying ${port + 1}`)
-          server.close(() => startOnPort(port + 1).then(resolve))
-          return
-        }
-        console.error("[backend] server error", err)
-        process.exit(1)
-      })
-    })
 
-  await startOnPort(env.PORT)
+  app.listen(env.PORT, () => {
+    console.log(`[backend] listening on http://localhost:${env.PORT}`)
+  }).on("error", (err: any) => {
+    if (err?.code === "EADDRINUSE") {
+      console.error(`[backend] port ${env.PORT} is already in use`)
+      process.exit(1)
+    }
+    console.error("[backend] server error", err)
+    process.exit(1)
+  })
 }
 
 main().catch((err) => {
   console.error("[backend] fatal startup error", err)
   process.exit(1)
 })
-

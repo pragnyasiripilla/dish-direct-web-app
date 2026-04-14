@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, Mail, Phone, User, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { apiRequest } from "@/lib/api-client"
+import { saveSession } from "@/lib/auth-session"
 
 const COUNTRY_CODES = [
   { code: "+1", country: "US", flag: "🇺🇸" },
@@ -28,6 +30,7 @@ export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -39,30 +42,20 @@ export function SignUpForm() {
     agreeToTerms: false,
   })
 
-  const sendOTP = async (phone: string, email: string) => {
+  const sendOTP = async (email: string) => {
     try {
       setError(null)
-  
-      const response = await fetch("http://localhost:4000/auth/send-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }), // backend only needs email
-      })
-  
-      const data = await response.json()
-  
-      if (response.ok) {
-        console.log("✅ OTP sent to email")
-        return true
-      } else {
-        setError(data.message || "Failed to send OTP")
-        return false
+      setSuccessMessage(null)
+      const data = await apiRequest<{ success: boolean }>(
+        "/auth/send-otp",
+        { method: "POST", body: JSON.stringify({ email }) },
+      )
+      if (data.success) {
+        setSuccessMessage("OTP sent successfully. Check your email.")
       }
+      return data.success
     } catch (error) {
-      console.error("OTP error:", error)
-      setError("Network error. Please try again.")
+      setError("Failed to send OTP. Please try again.")
       return false
     }
   }
@@ -71,65 +64,50 @@ export function SignUpForm() {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
+    setSuccessMessage(null)
   
     try {
-      // STEP 1: Send OTP
       if (!otpSent) {
-        const sent = await sendOTP(formData.phone, formData.email)
+        const sent = await sendOTP(formData.email)
         if (sent) {
           setOtpSent(true)
-          setError("OTP sent to your email 📩")
         }
         setIsLoading(false)
         return
       }
-  
-      // STEP 2: Verify OTP
-      const verifyRes = await fetch("http://localhost:4000/auth/verify-otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+
+      const data = await apiRequest<{ token: string; user: { id: string; email: string; name: string; role: string } }>(
+        "/auth/register",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            otp: formData.otp,
+            role: formData.role,
+          }),
         },
-        body: JSON.stringify({
-          email: formData.email,
-          otp: formData.otp,
-        }),
-      })
-  
-      const verifyData = await verifyRes.json()
-  
-      if (!verifyRes.ok) {
-        setError(verifyData.message || "Invalid or expired OTP")
-        setIsLoading(false)
-        return
-      }
-  
-      // STEP 3: Register user (TEMP success)
-      console.log("✅ OTP verified, user can be created")
-  
-      // You can later connect real register API
-      console.log("Account created successfully 🎉") 
-  
+      )
+      saveSession(data.token, data.user)
       window.location.href = "/dashboard"
     } catch (error) {
-      console.error("Signup error:", error)
-      setError("Something went wrong. Try again.")
+      if (!otpSent) {
+        setError("Failed to send OTP. Please try again.")
+      } else {
+        setError(error instanceof Error ? error.message : "Something went wrong. Try again.")
+      }
     }
   
     setIsLoading(false)
   }
 
   const handleGoogleSignUp = async () => {
-    setIsLoading(true)
     try {
-      console.log("[v0] Initiating Google OAuth")
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin
-      console.log("[v0] Base URL:", baseUrl)
-      window.location.href = `${baseUrl}/api/auth/google`
+      const data = await apiRequest<{ url: string }>("/auth/google/url")
+      window.location.href = data.url
     } catch (error) {
-      console.error("[v0] Google OAuth error:", error)
-      alert("Google sign-up failed. Please try again.")
-      setIsLoading(false)
+      setError(error instanceof Error ? error.message : "Google sign-up failed")
     }
   }
 
@@ -140,8 +118,14 @@ export function SignUpForm() {
         <CardDescription className="text-white/70">Start your journey of sharing meals and hope</CardDescription>
       </CardHeader>
       <CardContent>
+        {successMessage && (
+          <Alert className="mb-4 bg-green-500/10 border-green-500 text-green-400">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{successMessage}</AlertDescription>
+          </Alert>
+        )}
         {error && (
-          <Alert className="mb-4 bg-red-500/20 border-red-500/50 text-red-100">
+          <Alert className="mb-4 bg-red-500/10 text-red-400 border-red-500">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -305,8 +289,7 @@ export function SignUpForm() {
               required
             />
             <p className="text-sm text-white/70">
-              Code sent to {formData.countryCode}
-              {formData.phone} and {formData.email}
+              Code sent to {formData.email}. OTP expires in 15 minutes.
             </p>
           </div>
         )}

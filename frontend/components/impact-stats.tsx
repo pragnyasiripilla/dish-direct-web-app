@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/card"
 import { Heart, Users, MapPin, Trophy } from "lucide-react"
+import Link from "next/link"
 
 export function ImpactStats() {
   const stats = [
@@ -10,24 +11,28 @@ export function ImpactStats() {
       value: "12,847",
       label: "Meals Shared",
       gradient: "from-primary to-secondary",
+      href: "/donate",
     },
     {
       icon: Users,
       value: "3,421",
       label: "Active Donors",
       gradient: "from-secondary to-primary",
+      href: "/community-impact",
     },
     {
       icon: MapPin,
       value: "156",
       label: "Partner Restaurants",
       gradient: "from-primary to-accent",
+      href: "/discover",
     },
     {
       icon: Trophy,
       value: "8,932",
       label: "Rewards Unlocked",
       gradient: "from-accent to-secondary",
+      href: "/rewards",
     },
   ]
 
@@ -43,18 +48,17 @@ export function ImpactStats() {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {stats.map((stat, index) => (
-            <Card
-              key={index}
-              className="glassmorphism border-white/20 p-6 text-center hover:bg-white/20 transition-all duration-300 group"
-            >
-              <div
-                className={`w-16 h-16 bg-gradient-to-br ${stat.gradient} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}
-              >
-                <stat.icon className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-3xl md:text-4xl font-bold text-white mb-2 shimmer">{stat.value}</div>
-              <div className="text-white/70 text-sm md:text-base">{stat.label}</div>
-            </Card>
+            <Link href={stat.href} key={index}>
+              <Card className="glassmorphism border-white/20 p-6 text-center hover:bg-white/20 transition-all duration-300 group cursor-pointer">
+                <div
+                  className={`w-16 h-16 bg-gradient-to-br ${stat.gradient} rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300`}
+                >
+                  <stat.icon className="w-8 h-8 text-white" />
+                </div>
+                <div className="text-3xl md:text-4xl font-bold text-white mb-2 shimmer">{stat.value}</div>
+                <div className="text-white/70 text-sm md:text-base">{stat.label}</div>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>

@@ -65,12 +65,14 @@ export function RestaurantList({ restaurants, onRestaurantSelect, userLocation }
 
   const handleDonate = (restaurant: Restaurant, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent card click
+    console.log("[ui] Restaurant donate clicked", restaurant.id)
     setSelectedRestaurantForDonation(restaurant)
     setShowDonationModal(true)
   }
 
   const getDirections = (restaurant: Restaurant, e: React.MouseEvent) => {
     e.stopPropagation() // Prevent card click
+    console.log("[ui] Restaurant directions clicked", restaurant.id)
     if (userLocation) {
       const url = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${restaurant.lat},${restaurant.lng}`
       window.open(url, "_blank")
@@ -78,6 +80,12 @@ export function RestaurantList({ restaurants, onRestaurantSelect, userLocation }
       const url = `https://www.google.com/maps/search/?api=1&query=${restaurant.lat},${restaurant.lng}`
       window.open(url, "_blank")
     }
+  }
+
+  const handleRedeem = (restaurant: Restaurant, e: React.MouseEvent) => {
+    e.stopPropagation()
+    console.log("[ui] Restaurant redeem clicked", restaurant.id)
+    window.location.href = "/rewards"
   }
 
   return (
@@ -204,7 +212,11 @@ export function RestaurantList({ restaurants, onRestaurantSelect, userLocation }
                   <Navigation className="w-4 h-4 mr-1" />
                   Directions
                 </Button>
-                <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Button
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                  onClick={(e) => handleRedeem(restaurant, e)}
+                >
                   Redeem
                 </Button>
               </div>

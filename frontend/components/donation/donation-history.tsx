@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { ClientDateText } from "@/components/ui/client-date-text"
 import { Heart, Calendar, MapPin, Gift, ExternalLink } from "lucide-react"
 
 interface Donation {
@@ -23,10 +24,6 @@ interface DonationHistoryProps {
 }
 
 export function DonationHistory({ donations }: DonationHistoryProps) {
-  const formatDate = (timestamp: string) => {
-    return new Date(timestamp).toISOString().slice(0, 10)
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -79,7 +76,7 @@ export function DonationHistory({ donations }: DonationHistoryProps) {
 
                 <div className="flex items-center gap-1 text-sm text-white/60 mb-3">
                   <Calendar className="w-3 h-3" />
-                  <span>{formatDate(donation.timestamp)}</span>
+                  <ClientDateText value={donation.timestamp} mode="date" />
                 </div>
 
                 {donation.message && (
@@ -110,7 +107,15 @@ export function DonationHistory({ donations }: DonationHistoryProps) {
 
               <div className="text-right">
                 <div className="text-2xl font-bold text-white mb-1">${donation.amount}</div>
-                <Button size="sm" variant="ghost" className="text-white/50 hover:text-white hover:bg-white/10 p-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-white/50 hover:text-white hover:bg-white/10 p-1"
+                  onClick={() => {
+                    console.log("[ui] Donation details clicked", donation.id)
+                    window.location.href = `/donate?donationId=${donation.id}`
+                  }}
+                >
                   <ExternalLink className="w-4 h-4" />
                 </Button>
               </div>

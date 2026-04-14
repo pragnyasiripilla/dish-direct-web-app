@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ClientDateText } from "@/components/ui/client-date-text"
 import { ScratchCard } from "./scratch-card"
 import { Zap, Gift, Sparkles } from "lucide-react"
 
@@ -99,7 +100,9 @@ export function ScratchCardCollection({ cards, onCardReveal }: ScratchCardCollec
                 <div className="text-sm font-bold text-primary">
                   {card.reward.type === "tokens" ? `+${card.reward.value}` : card.reward.value}
                 </div>
-                <p className="text-xs text-white/50 mt-2">{new Date(card.earnedDate).toISOString().slice(0, 10)}</p>
+                <p className="text-xs text-white/50 mt-2">
+                  <ClientDateText value={card.earnedDate} mode="date" />
+                </p>
               </Card>
             ))}
           </div>

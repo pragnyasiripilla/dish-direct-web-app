@@ -1,23 +1,27 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ClientDateText } from "@/components/ui/client-date-text"
 import { Heart, Gift, TrendingUp, Calendar, Target, Star } from "lucide-react"
+import { API_BASE, apiRequest } from "@/lib/api-client"
+import { getSessionToken } from "@/lib/auth-session"
 
 interface UserStats {
   name: string
   avatar?: string
+  donationCount: number
   totalDonated: number
   mealsShared: number
   tokensEarned: number
   tokensAvailable: number
   scratchCardsAvailable: number
   badgesEarned: number
-  currentStreak: number
   rank: number
   nextMilestone: {
     name: string
@@ -35,70 +39,103 @@ interface UserStats {
 }
 
 export function UserDashboard() {
-  const [stats, setStats] = useState<UserStats>({
-    name: "Sarah Johnson",
-    avatar: "/placeholder.svg?height=80&width=80",
-    totalDonated: 1850,
-    mealsShared: 370,
-    tokensEarned: 185,
-    tokensAvailable: 23,
-    scratchCardsAvailable: 2,
-    badgesEarned: 4,
-    currentStreak: 7,
-    rank: 2,
-    nextMilestone: {
-      name: "Community Hero",
-      progress: 23,
-      target: 50,
-      reward: "Epic Badge + 50 Bonus Tokens",
-    },
-    recentDonations: [
-      {
-        id: "1",
-        restaurant: "Annapurna Restaurant",
-        amount: 25,
-        date: "2024-01-20",
-        tokens: 5,
-      },
-      {
-        id: "2",
-        restaurant: "Sai Krishna Tiffins",
-        amount: 15,
-        date: "2024-01-19",
-        tokens: 3,
-      },
-    ],
-  })
+  const router = useRouter()
+  const [stats, setStats] = useState<UserStats | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: "1",
-      type: "achievement",
-      message: "You've earned the 'Generous Heart' badge!",
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      read: false,
-    },
-    {
-      id: "2",
-      type: "milestone",
-      message: "You're halfway to Community Hero status!",
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-      read: false,
-    },
-  ])
-
-  // Simulate real-time updates
   useEffect(() => {
-    const interval = setInterval(() => {
-      setStats((prev) => ({
-        ...prev,
-        tokensEarned: prev.tokensEarned + Math.floor(Math.random() * 2),
-        mealsShared: prev.mealsShared + Math.floor(Math.random() * 2),
-      }))
-    }, 10000)
+    async function loadDashboard() {
+      try {
+        setIsLoading(true)
+        const token = getSessionToken()
+        if (!token) {
+          setError("Please sign in to view dashboard")
+          setIsLoading(false)
+          return
+        }
 
-    return () => clearInterval(interval)
+        const meRes = await fetch(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!meRes.ok) {
+          setError("Unable to load user profile")
+          setIsLoading(false)
+          return
+        }
+        const meData = (await meRes.json()) as {
+          user: {
+            id: string
+            name: string
+            donationCount: number
+            totalDonated: number
+            mealsShared: number
+            points: number
+            badges: string[]
+          }
+        }
+
+        const [donationData, rewardData, leaderboardData] = await Promise.all([
+          apiRequest<{ donations: Array<{ id: string; restaurantName: string; amount: number; tokens: number; timestamp: string }> }>(
+            `/donations?userId=${meData.user.id}`,
+          ),
+          apiRequest<{ rewards: Array<{ isRevealed: boolean }> }>(`/rewards?userId=${meData.user.id}`),
+          apiRequest<{ leaderboard: Array<{ id: string; rank: number }> }>("/community/leaderboard"),
+        ])
+
+        const nextTarget = 50
+        const progress = Math.min(meData.user.mealsShared, nextTarget)
+        const leaderboardEntry = leaderboardData.leaderboard.find((entry) => String(entry.id) === String(meData.user.id))
+
+        setStats({
+          name: meData.user.name,
+          donationCount: meData.user.donationCount,
+          totalDonated: meData.user.totalDonated,
+          mealsShared: meData.user.mealsShared,
+          tokensEarned: meData.user.points,
+          tokensAvailable: meData.user.points,
+          scratchCardsAvailable: rewardData.rewards.filter((r) => !r.isRevealed).length,
+          badgesEarned: meData.user.badges.length,
+          rank: leaderboardEntry?.rank || 0,
+          nextMilestone: {
+            name: "Community Hero",
+            progress,
+            target: nextTarget,
+            reward: "Epic Badge + 50 Bonus Tokens",
+          },
+          recentDonations: donationData.donations.slice(0, 5).map((donation) => ({
+            id: donation.id,
+            restaurant: donation.restaurantName,
+            amount: donation.amount,
+            date: donation.timestamp,
+            tokens: donation.tokens,
+          })),
+        })
+      } catch {
+        setError("Failed to load dashboard data")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadDashboard()
   }, [])
+
+  if (isLoading) {
+    return (
+      <Card className="glassmorphism border-white/20 p-8 text-center">
+        <p className="text-white/70">Loading...</p>
+      </Card>
+    )
+  }
+
+  if (error || !stats) {
+    return (
+      <Card className="glassmorphism border-white/20 p-8 text-center">
+        <p className="text-red-400">{error || "No data available"}</p>
+      </Card>
+    )
+  }
 
   const progressPercentage = (stats.nextMilestone.progress / stats.nextMilestone.target) * 100
 
@@ -116,13 +153,19 @@ export function UserDashboard() {
           <div>
             <h1 className="text-2xl font-bold text-white">{stats.name}</h1>
             <div className="flex items-center gap-4 text-sm text-white/70">
-              <span>Rank #{stats.rank}</span>
-              <span>{stats.currentStreak} day streak</span>
+              <span>{stats.rank ? `Rank #${stats.rank}` : "Unranked"}</span>
+              <span>{stats.donationCount} donations</span>
               <Badge className="bg-primary/20 text-primary border-primary/30">Active Donor</Badge>
             </div>
           </div>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+        <Button
+          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          onClick={() => {
+            console.log("[ui] Donate Now clicked")
+            router.push("/donate")
+          }}
+        >
           <Heart className="w-4 h-4 mr-2" />
           Donate Now
         </Button>
@@ -206,55 +249,48 @@ export function UserDashboard() {
           </h3>
 
           <div className="space-y-3">
-            {stats.recentDonations.map((donation) => (
-              <div key={donation.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                <div>
-                  <h4 className="text-white font-medium">{donation.restaurant}</h4>
-                  <p className="text-sm text-white/70">{new Date(donation.date).toISOString().slice(0, 10)}</p>
+            {stats.recentDonations.length > 0 ? (
+              stats.recentDonations.map((donation) => (
+                <div key={donation.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                  <div>
+                    <h4 className="text-white font-medium">{donation.restaurant}</h4>
+                    <p className="text-sm text-white/70">
+                      <ClientDateText value={donation.date} mode="date" />
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-bold text-white">${donation.amount}</div>
+                    <div className="text-sm text-primary">+{donation.tokens} tokens</div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-white">${donation.amount}</div>
-                  <div className="text-sm text-primary">+{donation.tokens} tokens</div>
-                </div>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-white/60 text-sm">No donations yet.</p>
+            )}
           </div>
 
-          <Button variant="outline" className="w-full mt-4 border-white/20 text-white hover:bg-white/10 bg-transparent">
+          <Button
+            variant="outline"
+            className="w-full mt-4 border-white/20 text-white hover:bg-white/10 bg-transparent"
+            onClick={() => {
+              console.log("[ui] View All Donations clicked")
+              router.push("/donate")
+            }}
+          >
             View All Donations
           </Button>
         </Card>
       </div>
 
-      {/* Notifications */}
-      {notifications.length > 0 && (
-        <Card className="glassmorphism border-white/20 p-6">
-          <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-            <Star className="w-5 h-5 text-yellow-400" />
-            Recent Achievements
-          </h3>
-
-          <div className="space-y-3">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`flex items-start gap-3 p-3 rounded-lg ${
-                  notification.read ? "bg-white/5" : "bg-primary/10 border border-primary/30"
-                }`}
-              >
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-white text-sm">{notification.message}</p>
-                  <p className="text-white/50 text-xs mt-1">{new Date(notification.timestamp).toLocaleString()}</p>
-                </div>
-                {!notification.read && (
-                  <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">New</Badge>
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
+      <Card className="glassmorphism border-white/20 p-6">
+        <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+          <Star className="w-5 h-5 text-yellow-400" />
+          Achievements
+        </h3>
+        <p className="text-white/70 text-sm">
+          You have earned <span className="text-white font-semibold">{stats.badgesEarned}</span> badges so far.
+        </p>
+      </Card>
     </div>
   )
 }

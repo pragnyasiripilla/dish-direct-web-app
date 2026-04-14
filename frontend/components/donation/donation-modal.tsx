@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Heart, Star, MapPin, CreditCard, Gift, Zap, Smartphone, Wallet } from "lucide-react"
+import { apiRequest } from "@/lib/api-client"
+import { getSessionUser } from "@/lib/auth-session"
 
 interface Restaurant {
   id: string
@@ -117,27 +119,18 @@ export function DonationModal({
         await new Promise((resolve) => setTimeout(resolve, 2000))
       }
 
-      // TODO: Send payment data to backend API
-      const response = await fetch("/api/donations", {
+      const user = getSessionUser()
+      if (!user) throw new Error("Please sign in first")
+      const result = await apiRequest<any>("/donations", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(paymentData),
+        body: JSON.stringify({ ...paymentData, userId: user.id }),
       })
-
-      if (!response.ok) {
-        throw new Error("Payment processing failed")
-      }
-
-      const result = await response.json()
       console.log("[v0] Payment successful:", result)
 
-      onDonationComplete(paymentData)
+      onDonationComplete({ ...paymentData, ...result.donation })
       onClose()
     } catch (error) {
       console.error("Donation failed:", error)
-      alert(`Payment failed: ${error.message}`)
     } finally {
       setIsProcessing(false)
     }

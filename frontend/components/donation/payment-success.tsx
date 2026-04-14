@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -19,6 +20,7 @@ interface PaymentSuccessProps {
 }
 
 export function PaymentSuccess({ isOpen, onClose, donation }: PaymentSuccessProps) {
+  const router = useRouter()
   const [showConfetti, setShowConfetti] = useState(false)
 
   useEffect(() => {
@@ -120,7 +122,14 @@ export function PaymentSuccess({ isOpen, onClose, donation }: PaymentSuccessProp
               Close
             </Button>
             {donation.scratchCards > 0 && (
-              <Button className="flex-1 bg-secondary hover:bg-secondary/90 text-white ripple-effect">
+              <Button
+                className="flex-1 bg-secondary hover:bg-secondary/90 text-white ripple-effect"
+                onClick={() => {
+                  console.log("[ui] Scratch Cards clicked from payment success")
+                  onClose()
+                  router.push("/rewards")
+                }}
+              >
                 <Zap className="w-4 h-4 mr-2" />
                 Scratch Cards
               </Button>

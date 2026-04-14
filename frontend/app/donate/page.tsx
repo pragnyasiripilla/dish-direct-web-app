@@ -10,6 +10,8 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Heart, TrendingUp, Users, Gift } from "lucide-react"
 import { RestaurantSelector } from "@/components/donation/restaurant-selector"
+import { apiRequest } from "@/lib/api-client"
+import { getSessionUser } from "@/lib/auth-session"
 
 interface Donation {
   id: string
@@ -48,11 +50,10 @@ export default function DonatePage() {
 
   const fetchDonations = async () => {
     try {
-      const response = await fetch("/api/donations?userId=current-user")
-      const data = await response.json()
-      if (data.success) {
-        setDonations(data.donations)
-      }
+      const user = getSessionUser()
+      if (!user) return
+      const data = await apiRequest<{ donations: Donation[] }>(`/donations?userId=${user.id}`)
+      setDonations(data.donations)
     } catch (error) {
       console.error("Failed to fetch donations:", error)
     } finally {
@@ -60,17 +61,8 @@ export default function DonatePage() {
     }
   }
 
-  const handleQuickDonate = (amount: number, restaurant: any) => {
-    const donation = {
-      restaurantId: restaurant.id,
-      amount,
-      tokens: Math.floor(amount / 5),
-      scratchCards: Math.floor(amount / 10),
-      isAnonymous: false,
-      message: "",
-      timestamp: new Date().toISOString(),
-    }
-
+  const handleQuickDonate = (donation: any, restaurant: any) => {
+    console.log("[ui] handleQuickDonate", { donation, restaurantId: restaurant?.id })
     setLastDonation({
       ...donation,
       restaurantName: restaurant.name,
@@ -78,21 +70,21 @@ export default function DonatePage() {
     setShowSuccessModal(true)
 
     const newDonation: Donation = {
-      id: `donation_${Date.now()}`,
-      restaurantName: restaurant.name,
+      id: donation.id || `donation_${Date.now()}`,
+      restaurantName: donation.restaurantName || restaurant.name,
       restaurantAddress: restaurant.address,
-      amount,
-      tokens: Math.floor(amount / 5),
-      scratchCards: Math.floor(amount / 10),
-      isAnonymous: false,
-      timestamp: new Date().toISOString(),
+      amount: donation.amount,
+      tokens: donation.tokens,
+      scratchCards: donation.scratchCards,
+      isAnonymous: Boolean(donation.isAnonymous),
+      timestamp: donation.timestamp || new Date().toISOString(),
       status: "completed",
     }
-
     setDonations((prev) => [newDonation, ...prev])
   }
 
   const handleDonationComplete = (donation: any) => {
+    console.log("[ui] handleDonationComplete", donation)
     setLastDonation(donation)
     setShowSuccessModal(true)
 

@@ -1,123 +1,46 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { GlassmorphismNav } from "@/components/glassmorphism-nav"
-import { Leaderboard } from "@/components/gamification/leaderboard"
-import { BadgeCollection } from "@/components/gamification/badge-collection"
 import { ScratchCardCollection } from "@/components/gamification/scratch-card-collection"
 import { Card } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Trophy, Zap, Gift, Target } from "lucide-react"
+import { apiRequest } from "@/lib/api-client"
+import { getSessionUser } from "@/lib/auth-session"
 
 export default function RewardsPage() {
-  const [leaderboardTimeframe, setLeaderboardTimeframe] = useState<"weekly" | "monthly" | "all-time">("weekly")
-  const [scratchCards, setScratchCards] = useState([
-    {
-      id: "card-1",
-      reward: {
-        type: "tokens" as const,
-        value: 10,
-        title: "Bonus Tokens",
-        description: "Extra meal tokens for your generosity",
-        rarity: "common" as const,
-      },
-      isRevealed: false,
-      earnedDate: new Date().toISOString(),
-    },
-    {
-      id: "card-2",
-      reward: {
-        type: "badge" as const,
-        value: "Generous Heart",
-        title: "New Badge",
-        description: "Unlock the Generous Heart badge",
-        rarity: "rare" as const,
-      },
-      isRevealed: false,
-      earnedDate: new Date().toISOString(),
-    },
-  ])
+  const [scratchCards, setScratchCards] = useState<any[]>([])
+  const [leaderboard, setLeaderboard] = useState<any[]>([])
 
-  const [badges] = useState([
-    {
-      id: "first-donation",
-      name: "First Steps",
-      description: "Made your first donation",
-      icon: "heart",
-      rarity: "common" as const,
-      earned: true,
-      earnedDate: "2024-01-15",
-    },
-    {
-      id: "generous-heart",
-      name: "Generous Heart",
-      description: "Donated $100 or more",
-      icon: "star",
-      rarity: "rare" as const,
-      earned: true,
-      earnedDate: "2024-01-20",
-    },
-    {
-      id: "community-hero",
-      name: "Community Hero",
-      description: "Helped 50 people with meals",
-      icon: "users",
-      rarity: "epic" as const,
-      earned: false,
-      progress: 23,
-      maxProgress: 50,
-    },
-    {
-      id: "meal-master",
-      name: "Meal Master",
-      description: "Shared 1000 meals",
-      icon: "crown",
-      rarity: "legendary" as const,
-      earned: false,
-      progress: 156,
-      maxProgress: 1000,
-    },
-  ])
-
-  const [leaderboard] = useState([
-    {
-      id: "user-1",
-      name: "Sarah Johnson",
-      avatar: "/placeholder.svg?height=40&width=40",
-      totalDonations: 2450,
-      mealsShared: 490,
-      tokensEarned: 245,
-      badges: ["First Steps", "Generous Heart", "Community Hero"],
-      rank: 1,
-      isCurrentUser: false,
-    },
-    {
-      id: "user-2",
-      name: "You",
-      totalDonations: 1850,
-      mealsShared: 370,
-      tokensEarned: 185,
-      badges: ["First Steps", "Generous Heart"],
-      rank: 2,
-      isCurrentUser: true,
-    },
-    {
-      id: "user-3",
-      name: "Mike Chen",
-      avatar: "/placeholder.svg?height=40&width=40",
-      totalDonations: 1650,
-      mealsShared: 330,
-      tokensEarned: 165,
-      badges: ["First Steps", "Generous Heart"],
-      rank: 3,
-      isCurrentUser: false,
-    },
-  ])
+  useEffect(() => {
+    const user = getSessionUser()
+    if (!user) return
+    apiRequest<{ rewards: any[] }>(`/rewards?userId=${user.id}`)
+      .then((data) =>
+        setScratchCards(
+          data.rewards.map((r) => ({
+            id: r._id,
+            reward: {
+              type: r.type === "points" ? "tokens" : r.type,
+              value: r.value,
+              title: r.title,
+              description: r.description,
+              rarity: r.rarity,
+            },
+            isRevealed: r.isRevealed,
+            earnedDate: r.unlockedAt,
+          })),
+        ),
+      )
+      .catch(console.error)
+    apiRequest<{ leaderboard: any[] }>("/community/leaderboard")
+      .then((data) => setLeaderboard(data.leaderboard))
+      .catch(console.error)
+  }, [])
 
   const handleCardReveal = (cardId: string, reward: any) => {
     setScratchCards((prev) => prev.map((card) => (card.id === cardId ? { ...card, isRevealed: true } : card)))
-    // TODO: Update user rewards in backend
-    console.log("Card revealed:", cardId, reward)
+    apiRequest(`/rewards/${cardId}/reveal`, { method: "PATCH" }).catch(console.error)
   }
 
   return (
@@ -169,48 +92,26 @@ export default function RewardsPage() {
             </Card>
           </div>
 
-          {/* Tabs */}
-          <Tabs defaultValue="scratch-cards" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-white/10 border border-white/20">
-              <TabsTrigger
-                value="scratch-cards"
-                className="text-white data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                Scratch Cards
-              </TabsTrigger>
-              <TabsTrigger
-                value="badges"
-                className="text-white data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <Gift className="w-4 h-4 mr-2" />
-                Badges
-              </TabsTrigger>
-              <TabsTrigger
-                value="leaderboard"
-                className="text-white data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                <Trophy className="w-4 h-4 mr-2" />
-                Leaderboard
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="scratch-cards" className="mt-6">
-              <ScratchCardCollection cards={scratchCards} onCardReveal={handleCardReveal} />
-            </TabsContent>
-
-            <TabsContent value="badges" className="mt-6">
-              <BadgeCollection badges={badges} />
-            </TabsContent>
-
-            <TabsContent value="leaderboard" className="mt-6">
-              <Leaderboard
-                entries={leaderboard}
-                timeframe={leaderboardTimeframe}
-                onTimeframeChange={setLeaderboardTimeframe}
-              />
-            </TabsContent>
-          </Tabs>
+          <div className="mt-6 space-y-6">
+            <ScratchCardCollection cards={scratchCards} onCardReveal={handleCardReveal} />
+            <Card className="glassmorphism border-white/20 p-6">
+              <h2 className="text-xl text-white font-semibold mb-4 flex items-center gap-2">
+                <Trophy className="w-4 h-4" /> Leaderboard
+              </h2>
+              <div className="space-y-2">
+                {leaderboard.map((entry) => (
+                  <div key={entry.id} className="flex items-center justify-between text-white bg-white/5 rounded p-2">
+                    <span>
+                      #{entry.rank} {entry.name}
+                    </span>
+                    <span>
+                      {entry.mealsShared} meals | {entry.badge}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
     </main>

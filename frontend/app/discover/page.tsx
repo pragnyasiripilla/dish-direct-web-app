@@ -33,6 +33,20 @@ export default function DiscoverPage() {
   const [viewMode, setViewMode] = useState<"map" | "list">("list")
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
 
+  const discoverNearby = () => {
+    if (!navigator.geolocation) return
+    setIsLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        handleLocationDetected({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }),
+      () => handleLocationError("Location permission denied"),
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
+  }
+
   const handleLocationDetected = async (location: { lat: number; lng: number }) => {
     setUserLocation(location)
     setIsLoading(true)
@@ -82,6 +96,9 @@ export default function DiscoverPage() {
 
           {/* Location detector */}
           <div className="mb-6">
+            <Button className="mb-4" onClick={discoverNearby}>
+              Discover Nearby
+            </Button>
             <LocationDetector onLocationDetected={handleLocationDetected} onLocationError={handleLocationError} />
           </div>
 
