@@ -15,11 +15,19 @@ export default function AuthCallbackPage() {
     const name = params.get("name")
     const role = params.get("role")
 
-    if (token && id && email && name && role) {
-      saveSession(token, { id, email, name, role })
+    console.log("PARAMS:", { token, id, email, name, role })
+
+    if (token) {
+      saveSession(token, {
+        id: id || "",
+        email: email || "",
+        name: name || "",
+        role: role || "user",
+      })
       router.replace("/dashboard")
       return
     }
+
     router.replace("/auth/sign-in")
   }, [params, router])
 
