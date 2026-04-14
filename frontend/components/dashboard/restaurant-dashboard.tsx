@@ -99,11 +99,14 @@ export function RestaurantDashboard() {
 
   const handleRedemption = (redemptionId: string, approved: boolean) => {
     setPendingRedemptions((prev) => prev.filter((r) => r.id !== redemptionId))
+  
     if (approved) {
+      const redemption = pendingRedemptions.find((r) => r.id === redemptionId)
+  
       setStats((prev) => ({
         ...prev,
-        activeTokens: prev.activeTokens - pendingRedemptions.find((r) => r.id === redemptionId)?.tokens || 0,
-        redeemedTokens: prev.redeemedTokens + (pendingRedemptions.find((r) => r.id === redemptionId)?.tokens || 0),
+        activeTokens: prev.activeTokens - (redemption?.tokens ?? 0),
+        redeemedTokens: prev.redeemedTokens + (redemption?.tokens ?? 0),
         mealsProvided: prev.mealsProvided + 1,
       }))
     }
@@ -245,7 +248,7 @@ export function RestaurantDashboard() {
               <div key={donation.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
                 <div>
                   <h4 className="text-white font-medium">{donation.donor}</h4>
-                  <p className="text-sm text-white/70">{new Date(donation.date).toLocaleDateString()}</p>
+                  <p className="text-sm text-white/70">{new Date(donation.date).toISOString().slice(0, 10)}</p>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-white">${donation.amount}</div>

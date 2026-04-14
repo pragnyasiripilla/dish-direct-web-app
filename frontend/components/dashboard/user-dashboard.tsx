@@ -210,7 +210,7 @@ export function UserDashboard() {
               <div key={donation.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
                 <div>
                   <h4 className="text-white font-medium">{donation.restaurant}</h4>
-                  <p className="text-sm text-white/70">{new Date(donation.date).toLocaleDateString()}</p>
+                  <p className="text-sm text-white/70">{new Date(donation.date).toISOString().slice(0, 10)}</p>
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-white">${donation.amount}</div>

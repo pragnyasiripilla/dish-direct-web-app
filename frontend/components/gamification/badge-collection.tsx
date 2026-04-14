@@ -87,7 +87,7 @@ export function BadgeCollection({ badges }: BadgeCollectionProps) {
                   {badge.rarity}
                 </Badge>
                 {badge.earnedDate && (
-                  <p className="text-xs text-white/50 mt-2">Earned {new Date(badge.earnedDate).toLocaleDateString()}</p>
+                  <p className="text-xs text-white/50 mt-2">Earned {new Date(badge.earnedDate).toISOString().slice(0, 10)}</p>
                 )}
               </Card>
             ))}

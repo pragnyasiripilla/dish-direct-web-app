@@ -42,31 +42,27 @@ export function SignUpForm() {
   const sendOTP = async (phone: string, email: string) => {
     try {
       setError(null)
-      console.log("[v0] Sending OTP to:", { phone: formData.countryCode + phone, email })
-
-      const response = await fetch("/api/auth/send-otp", {
+  
+      const response = await fetch("http://localhost:4000/auth/send-otp", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: formData.countryCode + phone, email }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }), // backend only needs email
       })
-
+  
       const data = await response.json()
-      console.log("[v0] OTP response:", { status: response.status, data })
-
+  
       if (response.ok) {
-        console.log("[v0] OTP sent successfully")
-        if (data.otp && process.env.NODE_ENV === "development") {
-          alert(`Development Mode - Your OTP is: ${data.otp}`)
-        }
+        console.log("✅ OTP sent to email")
         return true
       } else {
-        console.log("[v0] OTP sending failed:", data.error)
-        setError(data.error || "Failed to send OTP")
+        setError(data.message || "Failed to send OTP")
         return false
       }
     } catch (error) {
-      console.error("[v0] OTP sending error:", error)
-      setError("Network error. Please check your connection.")
+      console.error("OTP error:", error)
+      setError("Network error. Please try again.")
       return false
     }
   }
@@ -75,57 +71,51 @@ export function SignUpForm() {
     e.preventDefault()
     setIsLoading(true)
     setError(null)
-
-    if (!otpSent) {
-      const otpSent = await sendOTP(formData.phone, formData.email)
-      if (otpSent) {
-        setOtpSent(true)
+  
+    try {
+      // STEP 1: Send OTP
+      if (!otpSent) {
+        const sent = await sendOTP(formData.phone, formData.email)
+        if (sent) {
+          setOtpSent(true)
+          setError("OTP sent to your email 📩")
+        }
+        setIsLoading(false)
+        return
       }
-    } else {
-      try {
-        console.log("[v0] Attempting registration with data:", {
-          name: formData.name,
+  
+      // STEP 2: Verify OTP
+      const verifyRes = await fetch("http://localhost:4000/auth/verify-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           email: formData.email,
-          phone: formData.countryCode + formData.phone,
-          role: formData.role,
-          hasOtp: !!formData.otp,
-          hasPassword: !!formData.password,
-        })
-
-        const response = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...formData,
-            phone: formData.countryCode + formData.phone,
-          }),
-        })
-
-        let data
-        try {
-          data = await response.json()
-        } catch (parseError) {
-          console.error("[v0] Failed to parse response as JSON:", parseError)
-          setError("Server error. Please try again later.")
-          setIsLoading(false)
-          return
-        }
-
-        console.log("[v0] Registration response:", { status: response.status, data })
-
-        if (response.ok) {
-          console.log("[v0] Registration successful, redirecting to dashboard")
-          localStorage.setItem("token", data.token)
-          window.location.href = "/dashboard"
-        } else {
-          console.error("[v0] Registration failed:", data.error)
-          setError(data.error || "Registration failed. Please try again.")
-        }
-      } catch (error) {
-        console.error("[v0] Registration error:", error)
-        setError("Network error. Please check your connection and try again.")
+          otp: formData.otp,
+        }),
+      })
+  
+      const verifyData = await verifyRes.json()
+  
+      if (!verifyRes.ok) {
+        setError(verifyData.message || "Invalid or expired OTP")
+        setIsLoading(false)
+        return
       }
+  
+      // STEP 3: Register user (TEMP success)
+      console.log("✅ OTP verified, user can be created")
+  
+      // You can later connect real register API
+      console.log("Account created successfully 🎉") 
+  
+      window.location.href = "/dashboard"
+    } catch (error) {
+      console.error("Signup error:", error)
+      setError("Something went wrong. Try again.")
     }
+  
     setIsLoading(false)
   }
 
@@ -297,30 +287,29 @@ export function SignUpForm() {
           </div>
 
           {otpSent && (
-            <div className="space-y-2">
-              <Label htmlFor="otp" className="text-white">
-                Verification Code
-              </Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="Enter 6-digit code"
-                value={formData.otp}
-                onChange={(e) => {
-                  setFormData({ ...formData, otp: e.target.value })
-                  setError(null)
-                }}
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
-                maxLength={6}
-                required
-              />
-              <p className="text-sm text-white/70">
-                Code sent to {formData.countryCode}
-                {formData.phone} and {formData.email}
-              </p>
-              <p className="text-xs text-primary/80">Development: Check console/alert for OTP code</p>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="otp" className="text-white">
+              Verification Code
+            </Label>
+            <Input
+              id="otp"
+              type="text"
+              placeholder="Enter 6-digit code"
+              value={formData.otp}
+              onChange={(e) => {
+                setFormData({ ...formData, otp: e.target.value })
+                setError(null)
+              }}
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-primary"
+              maxLength={6}
+              required
+            />
+            <p className="text-sm text-white/70">
+              Code sent to {formData.countryCode}
+              {formData.phone} and {formData.email}
+            </p>
+          </div>
+        )}
 
           <div className="flex items-center space-x-2">
             <Checkbox

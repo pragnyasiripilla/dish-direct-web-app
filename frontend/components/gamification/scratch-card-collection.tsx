@@ -99,7 +99,7 @@ export function ScratchCardCollection({ cards, onCardReveal }: ScratchCardCollec
                 <div className="text-sm font-bold text-primary">
                   {card.reward.type === "tokens" ? `+${card.reward.value}` : card.reward.value}
                 </div>
-                <p className="text-xs text-white/50 mt-2">{new Date(card.earnedDate).toLocaleDateString()}</p>
+                <p className="text-xs text-white/50 mt-2">{new Date(card.earnedDate).toISOString().slice(0, 10)}</p>
               </Card>
             ))}
           </div>
