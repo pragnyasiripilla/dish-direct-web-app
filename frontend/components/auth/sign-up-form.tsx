@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, Mail, Phone, User, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { apiRequest } from "@/lib/api-client"
+import { API_BASE, apiRequest } from "@/lib/api-client"
 import { saveSession } from "@/lib/auth-session"
 
 const COUNTRY_CODES = [
@@ -104,8 +104,8 @@ export function SignUpForm() {
 
   const handleGoogleSignUp = async () => {
     try {
-      const data = await apiRequest<{ url: string }>("/auth/google/url")
-      window.location.href = data.url
+      if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL")
+      window.location.href = `${API_BASE}/auth/google`
     } catch (error) {
       setError(error instanceof Error ? error.message : "Google sign-up failed")
     }

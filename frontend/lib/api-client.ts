@@ -1,6 +1,10 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000"
+const API_BASE = process.env.NEXT_PUBLIC_API_URL
 
 export async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  if (!API_BASE) {
+    throw new Error("Missing NEXT_PUBLIC_API_URL environment variable")
+  }
+
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {

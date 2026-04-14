@@ -2,7 +2,8 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,10 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Eye, EyeOff, Mail, Chrome } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { apiRequest } from "@/lib/api-client"
+import { API_BASE, apiRequest } from "@/lib/api-client"
 import { saveSession } from "@/lib/auth-session"
 
 export function SignInForm() {
+  const searchParams = useSearchParams()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
@@ -24,6 +26,13 @@ export function SignInForm() {
     password: "",
     otp: "",
   })
+
+  useEffect(() => {
+    const oauthError = searchParams.get("error")
+    if (oauthError) {
+      setError("Google login failed. Please try again.")
+    }
+  }, [searchParams])
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,8 +95,8 @@ export function SignInForm() {
     console.log("[ui] Google sign-in clicked")
     setError(null)
     try {
-      const data = await apiRequest<{ url: string }>("/auth/google/url")
-      window.location.href = data.url
+      if (!API_BASE) throw new Error("Missing NEXT_PUBLIC_API_URL")
+      window.location.href = `${API_BASE}/auth/google`
     } catch (error) {
       console.error(error)
       setError(error instanceof Error ? error.message : "Google sign-in failed")

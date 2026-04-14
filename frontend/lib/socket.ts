@@ -6,7 +6,12 @@ class SocketService {
 
   connect() {
     if (typeof window !== "undefined" && !this.socket) {
-      this.socket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:4000", {
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL
+      if (!socketUrl) {
+        throw new Error("Missing NEXT_PUBLIC_SOCKET_URL or NEXT_PUBLIC_API_URL")
+      }
+
+      this.socket = io(socketUrl, {
         transports: ["websocket"],
       })
 
