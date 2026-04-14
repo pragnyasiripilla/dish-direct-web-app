@@ -19,6 +19,9 @@ export function configureGoogleStrategy() {
   const clientID = process.env.GOOGLE_CLIENT_ID
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET
   const callbackURL = process.env.GOOGLE_CALLBACK_URL
+
+  console.log("GOOGLE_CALLBACK_URL:", callbackURL)
+  
   if (!clientID || !clientSecret || !callbackURL) {
     console.warn("[auth] Google strategy not configured. Missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_CALLBACK_URL")
     return
