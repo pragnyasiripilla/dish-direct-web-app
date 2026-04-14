@@ -21,7 +21,6 @@ export function configureGoogleStrategy() {
   const callbackURL = process.env.GOOGLE_CALLBACK_URL
 
   console.log("GOOGLE_CALLBACK_URL:", callbackURL)
-  
   if (!clientID || !clientSecret || !callbackURL) {
     console.warn("[auth] Google strategy not configured. Missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET/GOOGLE_CALLBACK_URL")
     return
@@ -73,12 +72,12 @@ router.get("/auth/google/callback", (req, res, next) => {
   passport.authenticate("google", { session: false }, (err: unknown, user: any) => {
     if (err) {
       console.error("[auth] Google callback passport error", err)
-      return res.redirect(`${frontendBase}/auth/sign-in?error=google_passport_error`)
+      return res.redirect(`${frontendBase}`)
     }
 
     if (!user) {
       console.error("[auth] Google callback failed: no user returned")
-      return res.redirect(`${frontendBase}/auth/sign-in?error=google_login_failed`)
+      return res.redirect(`${frontendBase}`)
     }
 
     const token = issueToken(user._id.toString())
